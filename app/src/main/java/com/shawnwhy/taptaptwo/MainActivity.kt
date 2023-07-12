@@ -1,6 +1,7 @@
 package com.shawnwhy.taptaptwo
 
 import android.os.Bundle
+import android.transition.Explode
 import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,40 +52,10 @@ import kotlinx.coroutines.NonCancellable.start
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
-class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalFoundationApi::class)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            TapTaptwoTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                   TapTapHome()
-                }
-            }
-        }
-    }
-}
+//TODO have the box location objects in and use it to measure collision
 
-@ExperimentalFoundationApi
-@Composable
-fun TapTapHome() {
 
-//    1. Update your `BoxItem` model to include the size:
-//    ```kotlin
-    data class BoxItem(
-    val offset: Float,
-    val size: Dp, 
-    val isAnimating: MutableState<Boolean> = mutableStateOf(false))
-//    ```
 
-//
-//    2. Modify your mutable list to hold the box data items:
-//    ```kotlin
-    val boxItems = remember { mutableStateListOf<BoxItem>() }
 //    ```
 //
 //    3. Update your Composable function to use the data items and animated offset:
@@ -132,14 +104,80 @@ fun TapTapHome() {
 //            }
 //        }
 //    }
-//    ```
+
+class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalFoundationApi::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            TapTaptwoTheme {
+                // A surface container using the 'background' color from the theme
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                   TapTapHome()
+                }
+            }
+        }
+    }
+}
+data class BoxItem(
+    val id:Int,
+    var offsetY: State<Float>,
+    val offsetX : Float,
+    val size: Dp,
+    var isAnimating: MutableState<Boolean> = mutableStateOf(false),
+    var exploded : MutableState<Boolean> = mutableStateOf(false),
+)
+
+data class BoxLocation(
+    val id : Int,
+    val offsetX: Float,
+    val offsetY:Float,
+)
 
 
-    var list by remember{
-        mutableStateOf(mutableListOf(
+//var boxItems = remember { mutableStateListOf<BoxItem>() }
+//for (i in 0..5){
+//    var boxisAnimating =  remember{ mutableStateOf(false)}
+//    var newBox = BoxItem(
+//        id = i,
+//        isAnimating = boxisAnimating,
+//        offset = animateFloatAsState(targetValue = if(boxItems[i].isAnimating.value) 360f else 0f,
+//            animationSpec = infiniteRepeatable((
+//                    tween(500)
+//                    ))),
+//        size = 50.dp,
+//    )
+//    boxItems.add(newBox)
+//}
+@ExperimentalFoundationApi
+@Composable
+fun TapTapHome() {
 
-        "hah","sadsa","asada","sadada","4543535","wrwrwRW","2242"
-    ))
+
+    val fallNumber = 4
+    var animationTriggers = remember { mutableStateListOf<Boolean>()}
+    for (i in 0..fallNumber){
+        animationTriggers.add(false)
+    }
+
+    var boxLocations = remember { mutableStateListOf<BoxLocation>()}
+    for (i in 0..fallNumber){
+        boxLocations.add(BoxLocation( id=i, offsetX = 0.0.toFloat(), offsetY= 0.0.toFloat()))
+    }
+
+
+    var boxItems = remember { mutableStateListOf<BoxItem>() }
+    for (i in 0..fallNumber){
+        var newBox = BoxItem(
+            id = i,
+            offsetY = remember{mutableStateOf(0.0.toFloat())},
+            offsetX = Random.nextFloat()*700+100,
+            size = 50.dp,
+        )
+        boxItems.add(newBox)
     }
 
     val color = remember {
@@ -150,120 +188,59 @@ fun TapTapHome() {
             .background(Color.Black)
             .fillMaxSize()
     ) {
-//        TapButton(color = color.value,
-//            modifier= Modifier
-//                .offset(122.dp, 300.dp)
-//                .fillMaxSize()
-//        ){
-//            color.value=it
-//        }
-
-        for ((index,value) in list.withIndex()) {
+        for ((index,value) in boxItems.withIndex()) {
             FallingButton(
                 modifier = Modifier,
-                offsetXInput = Random.nextInt(100,400),
-                offsetYInput = Random.nextInt(500,700),
+                offsetXInput = boxItems[index].offsetX,
                 time = 3000,
                 color = Color.Red,
-                list = list,
-                delay =index
-
+                boxlist = boxItems,
+                delay =index,
+                id = index,
+                animationTriggers = animationTriggers
             ) {
-
                 color.value = it
             }
         }
-
-
-    }
-
-}
-
-
-
-
-@Composable
-fun TapButton(
-    modifier:Modifier = Modifier,
-    time:Int = 3000,
-
-    color: Color,
-    updateColor : (Color) -> Unit,
-
-){
-
-    Box(modifier = modifier
-        .background(color)
-        .clickable {
-
-            updateColor(
-                Color(
-                    Random.nextFloat(),
-                    Random.nextFloat(),
-                    Random.nextFloat(),
-                    1f
-
-                )
-
-            )
-
-        }
-
-
-
-    ){
-        Text(text = "Click Brah")
-
     }
 }
+
+//
 
 @Composable
 fun FallingButton(
+    id:Int,
     modifier:Modifier,
-    offsetXInput:Int,
-    offsetYInput:Int,
+    offsetXInput:Float,
     time:Int,
     delay:Int,
     color: Color,
-    list : List<String>,
-
+    boxlist : List<BoxItem>,
+    animationTriggers : MutableList<Boolean>,
     updateColor : (Color) -> Unit
-
 ){
     val dragOffset = remember { mutableStateOf(Offset.Zero) }
-
-
-
-    var animationPlayed by remember {
-        mutableStateOf(false)
-
-    }
 
     var rotationPlayed by remember {
         mutableStateOf(false)
     }
-
     var splashPlayed by remember{
         mutableStateOf(false)
     }
-
     var sizeState by remember { mutableStateOf(40) }
     var size = animateIntAsState(targetValue = sizeState)
-    var offsetX = animateIntAsState(targetValue = offsetXInput,
-        keyframes {
-            durationMillis = time
-        }
-    )
-
+    var offsetX = offsetXInput.dp
     var visibility by remember{
         mutableStateOf(true)
     }
+    var fade by remember { mutableStateOf(false)}
 
-    var offsetY = animateIntAsState(targetValue = if(animationPlayed) offsetYInput else 0,
+
+    boxlist[id].offsetY = animateFloatAsState(targetValue = if(animationTriggers[id]) 500.toFloat() else 0.toFloat(),
 
         keyframes {
             durationMillis = time
-//            delayMillis = 500
+            delayMillis = 500
 
         })
     var rotation = animateFloatAsState(targetValue = if(rotationPlayed) 360f else 0f,
@@ -272,19 +249,59 @@ fun FallingButton(
             )))
 //time the animations
     LaunchedEffect(Unit) {
-        delay(timeMillis = delay.toLong()*100)
-//        animationPlayed= true
-        delay(timeMillis = delay.toLong()*100 + time -100)
-//        visibility=false
-//        splashPlayed = true
+        delay(timeMillis = delay.toLong()*100+(id*100))
+       if(animationTriggers[id] == false){
+           animationTriggers[id]= true
+       }
+        delay(timeMillis = delay.toLong()*100 + time -100+id*100)
+
+        visibility=false
+        boxlist[id].exploded.value = true
     }
 
     Box(contentAlignment = Alignment.Center,
         modifier = modifier
-            .offset(offsetX.value.dp+ dragOffset.value.x.dp, offsetY.value.dp+dragOffset.value.y.dp)
+            .offset(offsetX.value.dp+ (dragOffset.value.x/2).dp, boxlist[id].offsetY.value.dp+(dragOffset.value.y/2).dp)
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        rotationPlayed = true
+                    },
+                    onDragCancel = {
+                        rotationPlayed = false
+
+                        boxlist[id].exploded.value = true
+                        visibility=false
+
+                    },
+                    onDragEnd = {
+                        rotationPlayed = false
+                        boxlist[id].exploded.value = true
+                        visibility=false
+                    }
 
 
 
+                ) { change, dragAmount ->
+                    change.consume()
+
+                    if(visibility==true){
+                    dragOffset.value += Offset(dragAmount.x, dragAmount.y)}
+                }
+                val newoffSetX = offsetX.value+ dragOffset.value.x/2
+                val newoffsetY = boxlist[id].offsetY.value+(dragOffset.value.y/2)
+                for ((index,value) in boxlist.withIndex()) {
+
+                    if(boxlist[index].offsetY.value<newoffsetY+50 && boxlist[index].offsetY.value>newoffsetY-50
+                        && boxlist[index].offsetX < newoffSetX + 50 &&  boxlist[index].offsetX > newoffSetX - 50 ){
+
+                        boxlist[index].exploded.value = true;
+                        boxlist[id].exploded.value = true;
+                    }
+                }
+
+
+            }
 
     ){
         Box(
@@ -292,39 +309,8 @@ fun FallingButton(
             modifier = Modifier
                 .height(size.value.dp)
                 .width(size.value.dp)
-
                 .rotate(if(visibility)rotation.value else 0f)
-
-
                 .background(if(visibility)color else Color.Transparent)
-                .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDragStart = {
-                            rotationPlayed = true
-                            animationPlayed = false
-
-                        },
-                        onDragCancel = {
-                            rotationPlayed = false
-                            animationPlayed = true
-
-                        },
-                        onDragEnd = {
-                            rotationPlayed = false
-                            animationPlayed = true
-
-
-                        }
-
-
-
-                    ) { change, dragAmount ->
-                        change.consume()
-
-
-                        dragOffset.value += Offset(dragAmount.x, dragAmount.y)
-                    }
-                }
 
         ){
 
@@ -338,35 +324,31 @@ fun FallingButton(
                         Random.nextFloat(),
                         Random.nextFloat(),
                         1f
-
                     ),
-                    splashPlayed = splashPlayed,
-                    visibility = visibility
-
-
+                    visibility = visibility,
+                    isExplode = boxlist[id].exploded.value,
+                    id = id
 
                     )
-
             }
-
         }
-
     }
 }
 
 
 @Composable
 fun Splasher(
+    id:Int,
+    isExplode:Boolean,
     size:Dp,
     height: Dp,
     length:Dp,
     color:Color,
-    splashPlayed:Boolean,
     visibility:Boolean
 
 ){
 
-    var splashAnimation1X = animateDpAsState(targetValue = if(splashPlayed) length else 0.dp, animationSpec =
+    var splashAnimation1X = animateDpAsState(targetValue = if(isExplode) length else 0.dp, animationSpec =
     keyframes {
         durationMillis=1500
         0.dp at 0
@@ -375,7 +357,7 @@ fun Splasher(
     } )
 
     val splashAnimation1Y = animateDpAsState(
-        targetValue = if(splashPlayed)-20.dp else 0.dp,
+        targetValue = if(isExplode)-20.dp else 0.dp,
         animationSpec = keyframes {
             durationMillis = 1500
             0.dp at 0
@@ -422,4 +404,28 @@ data class Drop(
 //
 //}
 
+
+//@Composable
+//fun TapButton(
+//    modifier:Modifier = Modifier,
+//    time:Int = 3000,
+//    color: Color,
+//    updateColor : (Color) -> Unit,
+//){
+//    Box(modifier = modifier
+//        .background(color)
+//        .clickable {
+//            updateColor(
+//                Color(
+//                    Random.nextFloat(),
+//                    Random.nextFloat(),
+//                    Random.nextFloat(),
+//                    1f
+//                )
+//            )
+//        }
+//    ){
+//        Text(text = "Click Brah")
+//    }
+//}
 
