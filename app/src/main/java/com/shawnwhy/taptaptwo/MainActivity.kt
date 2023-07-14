@@ -129,6 +129,7 @@ data class BoxItem(
     val size: Dp,
     var isAnimating: MutableState<Boolean> = mutableStateOf(false),
     var exploded : MutableState<Boolean> = mutableStateOf(false),
+    var visible : MutableState<Boolean> = mutableStateOf(true),
 )
 
 data class BoxLocation(
@@ -157,7 +158,7 @@ data class BoxLocation(
 fun TapTapHome() {
 
 
-    val fallNumber = 4
+    val fallNumber = 8
     var animationTriggers = remember { mutableStateListOf<Boolean>()}
     for (i in 0..fallNumber){
         animationTriggers.add(false)
@@ -174,7 +175,7 @@ fun TapTapHome() {
         var newBox = BoxItem(
             id = i,
             offsetY = remember{mutableStateOf(0.0.toFloat())},
-            offsetX = Random.nextFloat()*700+100,
+            offsetX = Random.nextFloat()*300+100,
             size = 50.dp,
         )
         boxItems.add(newBox)
@@ -192,7 +193,7 @@ fun TapTapHome() {
             FallingButton(
                 modifier = Modifier,
                 offsetXInput = boxItems[index].offsetX,
-                time = 3000,
+                time = 5000,
                 color = Color.Red,
                 boxlist = boxItems,
                 delay =index,
@@ -255,8 +256,8 @@ fun FallingButton(
        }
         delay(timeMillis = delay.toLong()*100 + time -100+id*100)
 
-        visibility=false
-        boxlist[id].exploded.value = true
+//        visibility=false
+//        boxlist[id].exploded.value = true
     }
 
     Box(contentAlignment = Alignment.Center,
@@ -265,19 +266,22 @@ fun FallingButton(
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = {
+
+                        println("mppvine")
+
                         rotationPlayed = true
                     },
                     onDragCancel = {
                         rotationPlayed = false
 
                         boxlist[id].exploded.value = true
-                        visibility=false
+                        boxlist[id].visible.value=false
 
                     },
                     onDragEnd = {
                         rotationPlayed = false
                         boxlist[id].exploded.value = true
-                        visibility=false
+                        boxlist[id].visible.value = false
                     }
 
 
@@ -285,20 +289,25 @@ fun FallingButton(
                 ) { change, dragAmount ->
                     change.consume()
 
-                    if(visibility==true){
+                    if(boxlist[id].visible.value ==true){
                     dragOffset.value += Offset(dragAmount.x, dragAmount.y)}
-                }
-                val newoffSetX = offsetX.value+ dragOffset.value.x/2
-                val newoffsetY = boxlist[id].offsetY.value+(dragOffset.value.y/2)
-                for ((index,value) in boxlist.withIndex()) {
 
-                    if(boxlist[index].offsetY.value<newoffsetY+50 && boxlist[index].offsetY.value>newoffsetY-50
-                        && boxlist[index].offsetX < newoffSetX + 50 &&  boxlist[index].offsetX > newoffSetX - 50 ){
+                    val newoffSetX = offsetX.value + dragOffset.value.x/2
+                    val newoffsetY = boxlist[id].offsetY.value+(dragOffset.value.y/2)
+                    for ((index,value) in boxlist.withIndex()) {
+                        if(boxlist[index].offsetY.value> newoffsetY-5 && boxlist[index].offsetY.value<newoffsetY+size.value+5
+                            && boxlist[index].offsetX > newoffSetX-5 &&  boxlist[index].offsetX < newoffSetX +size.value+5 && index != id
+                            && !boxlist[index].exploded.value){
+                            println("hit")
+                            boxlist[index].exploded.value = true;
+                            boxlist[index].visible.value = false
 
-                        boxlist[index].exploded.value = true;
-                        boxlist[id].exploded.value = true;
+                            boxlist[id].exploded.value = true;
+                            boxlist[id].visible.value = false
+                        }
                     }
                 }
+
 
 
             }
@@ -309,8 +318,8 @@ fun FallingButton(
             modifier = Modifier
                 .height(size.value.dp)
                 .width(size.value.dp)
-                .rotate(if(visibility)rotation.value else 0f)
-                .background(if(visibility)color else Color.Transparent)
+                .rotate(if(boxlist[id].visible.value)rotation.value else 0f)
+                .background(if(boxlist[id].visible.value)color else Color.Transparent)
 
         ){
 
@@ -325,7 +334,7 @@ fun FallingButton(
                         Random.nextFloat(),
                         1f
                     ),
-                    visibility = visibility,
+                    visibility = boxlist[id].visible.value,
                     isExplode = boxlist[id].exploded.value,
                     id = id
 
