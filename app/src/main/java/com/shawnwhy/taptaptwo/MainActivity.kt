@@ -54,58 +54,7 @@ import kotlinx.coroutines.NonCancellable.start
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
-//TODO have the box location objects in and use it to measure collision
 
-
-
-//    ```
-//
-//    3. Update your Composable function to use the data items and animated offset:
-//    ```kotlin
-//    Column {
-//        boxItems.forEachIndexed { index, boxItem -&gt;
-//            Box(
-//                modifier = Modifier
-//                    .padding(8.dp)
-//                    .offset { IntOffset(boxItem.offset.value.roundToInt(), 0) }
-//                    .background(Color.Red)
-//                    .size(boxItem.size)
-//                    .draggable(
-//                        state = DraggableState(
-//                            onDragEnd = { dragDistance -&gt;
-//                                // Update the state when the drag ends
-//                                boxItem.isAnimating.value = false
-//                            },
-//                            onDragStart = {
-//                                // Update the state when the drag starts
-//                                boxItem.isAnimating.value = true
-//                            }
-//                        ),
-//                        orientation = Orientation.Horizontal
-//                    )
-//            )
-//        }
-//    }
-//    ```
-//
-//    4. To access the mutated state during the drag action, use `remember` and `derivedStateOf` functions:
-//    ```kotlin
-//    val draggedBoxData = remember(draggedBoxIndex.value) {
-//        derivedStateOf {
-//            boxItems.getOrNull(draggedBoxIndex.value)
-//        }
-//    }
-//    ```
-//
-//    5. Implement the collision detection logic between the dragged box and others:
-//    ```kotlin
-//    if (draggedBoxData.value != null) {
-//        boxItems.forEachIndexed { index, boxItem -&gt;
-//            if (index != draggedBoxIndex.value &amp;&amp; checkCollision(draggedBoxData.value!!, boxItem)) {
-//                // Collision detected! Perform desired actions here
-//            }
-//        }
-//    }
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalFoundationApi::class)
@@ -118,7 +67,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                   TapTapHome()
+                   MainContainer()
                 }
             }
         }
@@ -132,6 +81,8 @@ data class BoxItem(
     var isAnimating: MutableState<Boolean> = mutableStateOf(false),
     var exploded : MutableState<Boolean> = mutableStateOf(false),
     var visible : MutableState<Boolean> = mutableStateOf(true),
+    val points : Int,
+    val splashVisible : MutableState<Boolean> = mutableStateOf(false)
 )
 
 data class BoxLocation(
@@ -139,25 +90,16 @@ data class BoxLocation(
     val offsetX: Float,
     val offsetY:Float,
 )
-
 //@ExperimentalFoundationApi
+
+
 @Composable
-fun TapTapHome() {
-
-    val score = remember { mutableStateOf(0)}
+fun MainContainer(
 
 
+){
+    val score = remember { mutableStateOf(0) }
     val fallNumber = 8
-    var animationTriggers = remember { mutableStateListOf<Boolean>()}
-    for (i in 0..fallNumber){
-        animationTriggers.add(false)
-    }
-
-    var boxLocations = remember { mutableStateListOf<BoxLocation>()}
-    for (i in 0..fallNumber){
-        boxLocations.add(BoxLocation( id=i, offsetX = 0.0.toFloat(), offsetY= 0.0.toFloat()))
-    }
-
 
     var boxItems = remember { mutableStateListOf<BoxItem>() }
 
@@ -167,11 +109,28 @@ fun TapTapHome() {
             offsetY = remember{mutableStateOf(0.0.toFloat())},
             offsetX = Random.nextFloat()*300+100,
             size = 50.dp,
+            points = 200,
         )
         boxItems.add(newBox)
     }
 
+    var animationTriggers = remember { mutableStateListOf<Boolean>()}
+    for (i in 0..fallNumber){
+        animationTriggers.add(false)
+    }
 
+    TapTapHome(animationTriggers = animationTriggers, boxItems = boxItems, score = score )
+
+
+}
+@Composable
+fun TapTapHome(
+
+    animationTriggers: MutableList<Boolean>,
+    boxItems:MutableList<BoxItem>,
+    score:MutableState<Int>
+
+) {
 
 
     val color = remember {
@@ -206,7 +165,9 @@ fun TapTapHome() {
                 boxlist = boxItems,
                 delay =index*4,
                 id = index,
-                animationTriggers = animationTriggers
+                animationTriggers = animationTriggers,
+                score = score
+
             ) {
                 color.value = it
             }
@@ -228,6 +189,8 @@ fun FallingButton(
     color: Color,
     boxlist : List<BoxItem>,
     animationTriggers : MutableList<Boolean>,
+    score : MutableState<Int>,
+
     updateColor : (Color) -> Unit
 ){
     val dragOffset = remember { mutableStateOf(Offset.Zero) }
@@ -277,6 +240,13 @@ fun FallingButton(
             animationTriggers[id] = false
             dragOffset.value = Offset.Zero
             rotationPlayed = false
+            boxlist[id].splashVisible.value = true
+
+
+
+
+
+
 
 
             delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100 + 400)
@@ -284,6 +254,10 @@ fun FallingButton(
             animationTriggers[id] = true
             boxlist[id].visible.value = true
             boxlist[id].exploded.value = false
+            boxlist[id].splashVisible.value = false
+
+
+
 
 //            boxlist[id].offsetY.value = 0.0.toFloat()
 
@@ -307,12 +281,21 @@ fun FallingButton(
 
                         boxlist[id].exploded.value = true
                         boxlist[id].visible.value = false
+                        boxlist[id].splashVisible.value = true
+
+//                        score.value = score.value + 200
+
 
                     },
                     onDragEnd = {
                         rotationPlayed = false
                         boxlist[id].exploded.value = true
                         boxlist[id].visible.value = false
+                        boxlist[id].splashVisible.value = true
+
+//                        score.value = score.value + 200
+
+
                     }
 
 
@@ -335,7 +318,11 @@ fun FallingButton(
 
                             boxlist[id].exploded.value = true;
                             boxlist[id].visible.value = false
+                            boxlist[id].splashVisible.value = true
+
                             rotationPlayed = false
+                            score.value = score.value + 400
+
 
                         }
                     }
@@ -368,7 +355,8 @@ fun FallingButton(
                     ),
                     visibility = boxlist[id].visible.value,
                     isExplode = boxlist[id].exploded.value,
-                    id = id
+                    id = id,
+                    splasherVisible = boxlist[id].splashVisible.value
 
                     )
             }
@@ -385,7 +373,8 @@ fun Splasher(
     height: Dp,
     length:Dp,
     color:Color,
-    visibility:Boolean
+    visibility:Boolean,
+    splasherVisible:Boolean
 
 ){
 
@@ -406,7 +395,7 @@ fun Splasher(
         modifier= Modifier
             .size(size)
             .offset(splashAnimation1X.value, splashAnimation1Y.value)
-            .background(if (!visibility) color else Color.Transparent)
+            .background(if (!visibility && splasherVisible) color else Color.Transparent)
 
     ){
 
