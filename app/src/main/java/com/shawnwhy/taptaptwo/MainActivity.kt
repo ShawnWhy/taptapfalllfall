@@ -255,11 +255,7 @@ fun FallingButton(
             boxlist[id].visible.value = true
             boxlist[id].exploded.value = false
             boxlist[id].splashVisible.value = false
-
-
-
-
-//            boxlist[id].offsetY.value = 0.0.toFloat()
+//          boxlist[id].offsetY.value = 0.0.toFloat()
 
         }
     }
