@@ -82,7 +82,9 @@ data class BoxItem(
     var exploded : MutableState<Boolean> = mutableStateOf(false),
     var visible : MutableState<Boolean> = mutableStateOf(true),
     val points : Int,
-    val splashVisible : MutableState<Boolean> = mutableStateOf(false)
+    val splashVisible : MutableState<Boolean> = mutableStateOf(false),
+    val scoreVisible : MutableState<Boolean> = mutableStateOf(false),
+    val color:Color
 )
 
 data class BoxLocation(
@@ -104,12 +106,19 @@ fun MainContainer(
     var boxItems = remember { mutableStateListOf<BoxItem>() }
 
     for (i in 0..fallNumber){
+        val randomSizeNumber = Random.nextInt(50)+50
         var newBox = BoxItem(
             id = i,
             offsetY = remember{mutableStateOf(0.0.toFloat())},
             offsetX = Random.nextFloat()*300+100,
-            size = 50.dp,
-            points = 200,
+            size = randomSizeNumber.dp,
+            points = randomSizeNumber,
+            color = Color(
+                    Random.nextFloat(),
+                    Random.nextFloat(),
+                    Random.nextFloat(),
+                    1f
+                )
         )
         boxItems.add(newBox)
     }
@@ -161,7 +170,6 @@ fun TapTapHome(
                 modifier = Modifier,
                 offsetXInput = boxItems[index].offsetX,
                 time = 5000,
-                color = Color.Red,
                 boxlist = boxItems,
                 delay =index*4,
                 id = index,
@@ -186,7 +194,6 @@ fun FallingButton(
     offsetXInput:Float,
     time:Int,
     delay:Int,
-    color: Color,
     boxlist : List<BoxItem>,
     animationTriggers : MutableList<Boolean>,
     score : MutableState<Int>,
@@ -241,16 +248,7 @@ fun FallingButton(
             dragOffset.value = Offset.Zero
             rotationPlayed = false
             boxlist[id].splashVisible.value = true
-
-
-
-
-
-
-
-
             delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100 + 400)
-
             animationTriggers[id] = true
             boxlist[id].visible.value = true
             boxlist[id].exploded.value = false
@@ -278,8 +276,9 @@ fun FallingButton(
                         boxlist[id].exploded.value = true
                         boxlist[id].visible.value = false
                         boxlist[id].splashVisible.value = true
+                        boxlist[id].scoreVisible.value = true
 
-//                        score.value = score.value + 200
+                        score.value = score.value + boxlist[id].points
 
 
                     },
@@ -288,8 +287,9 @@ fun FallingButton(
                         boxlist[id].exploded.value = true
                         boxlist[id].visible.value = false
                         boxlist[id].splashVisible.value = true
+                        boxlist[id].scoreVisible.value = true
 
-//                        score.value = score.value + 200
+                        score.value = score.value + boxlist[id].points
 
 
                     }
@@ -317,7 +317,12 @@ fun FallingButton(
                             boxlist[id].splashVisible.value = true
 
                             rotationPlayed = false
-                            score.value = score.value + 400
+                            boxlist[id].scoreVisible.value = true
+                            boxlist[index].scoreVisible.value = true
+
+
+                            score.value = score.value + boxlist[id].points
+                            score.value = score.value + boxlist[index].points
 
 
                         }
@@ -331,12 +336,17 @@ fun FallingButton(
         Box(
 
             modifier = Modifier
-                .height(size.value.dp)
-                .width(size.value.dp)
+                .height(boxlist[id].size)
+                .width(boxlist[id].size)
                 .rotate(if (boxlist[id].visible.value) rotation.value else 0f)
-                .background(if (boxlist[id].visible.value) color else Color.Transparent)
+                .background(if (boxlist[id].visible.value) boxlist[id].color else Color.Transparent)
 
         ){
+
+            Text(
+                color = if(boxlist[id].scoreVisible.value) boxlist[id].color else Color.Transparent,
+                text = boxlist[id].points.toString(),
+            )
 
             for (i in 1..5) {
                 Splasher(
@@ -394,7 +404,6 @@ fun Splasher(
             .background(if (!visibility && splasherVisible) color else Color.Transparent)
 
     ){
-
 
     }
 
