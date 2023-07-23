@@ -2,6 +2,7 @@ package com.shawnwhy.taptaptwo
 
 import android.os.Bundle
 import android.transition.Explode
+import android.util.Log
 import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,10 +32,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -123,6 +126,8 @@ fun MainContainer(
         boxItems.add(newBox)
     }
 
+
+
     var animationTriggers = remember { mutableStateListOf<Boolean>()}
     for (i in 0..fallNumber){
         animationTriggers.add(false)
@@ -187,188 +192,224 @@ fun TapTapHome(
 
 //this is the button class that calls and is controled
 
-@Composable
-fun FallingButton(
-    id:Int,
-    modifier:Modifier,
-    offsetXInput:Float,
-    time:Int,
-    delay:Int,
-    boxlist : List<BoxItem>,
-    animationTriggers : MutableList<Boolean>,
-    score : MutableState<Int>,
+    @Composable
+    fun FallingButton(
+        id:Int,
+        modifier:Modifier,
+        offsetXInput:Float,
+        time:Int,
+        delay:Int,
+        boxlist : List<BoxItem>,
+        animationTriggers : MutableList<Boolean>,
+        score : MutableState<Int>,
 
-    updateColor : (Color) -> Unit
-){
-    val dragOffset = remember { mutableStateOf(Offset.Zero) }
+        updateColor : (Color) -> Unit
+    ){
+        val dragOffset = remember { mutableStateOf(Offset.Zero) }
 
-    var rotationPlayed by remember {
-        mutableStateOf(false)
-    }
-    var splashPlayed by remember{
-        mutableStateOf(false)
-    }
-    var sizeState by remember { mutableStateOf(40) }
-    var size = animateIntAsState(targetValue = sizeState)
-    var offsetX = offsetXInput.dp
-    var visibility by remember{
-        mutableStateOf(true)
-    }
-    var fade by remember { mutableStateOf(false)}
-
-
-    boxlist[id].offsetY = animateFloatAsState(targetValue = if(animationTriggers[id]) 600.toFloat() else 0.toFloat(),
-
-        keyframes {
-            durationMillis = time
-            delayMillis = 500
+        var rotationPlayed by remember {
+            mutableStateOf(false)
         }
-    )
-    var rotation = animateFloatAsState(targetValue = if(rotationPlayed) 360f else 0f,
-//            animationSpec = infiniteRepeatable((
-//            tween(500)
-//            ))
-        keyframes {
-            durationMillis = 500
-
+        var splashPlayed by remember{
+            mutableStateOf(false)
         }
-    )
-//time the animations
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(timeMillis = delay.toLong() * 100 + (id * 100))
-            if (animationTriggers[id] == false) {
-                animationTriggers[id] = true
+        var sizeState by remember { mutableStateOf(40) }
+        var size = animateFloatAsState(targetValue = boxlist[id].size.value)
+        var offsetX = offsetXInput.dp
+        var visibility by remember{
+            mutableStateOf(true)
+        }
+        var fade by remember { mutableStateOf(false)}
+
+
+        boxlist[id].offsetY = animateFloatAsState(targetValue = if(animationTriggers[id]) 600.toFloat() else 0.toFloat(),
+
+            keyframes {
+                durationMillis = time
+                delayMillis = 500
             }
-            delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100)
+        )
+        var rotation = animateFloatAsState(targetValue = if(rotationPlayed) 360f else 0f,
+    //            animationSpec = infiniteRepeatable((
+    //            tween(500)
+    //            ))
+            keyframes {
+                durationMillis = 500
 
-            boxlist[id].visible.value = false
-            boxlist[id].exploded.value = true
-            animationTriggers[id] = false
-            dragOffset.value = Offset.Zero
-            rotationPlayed = false
-            boxlist[id].splashVisible.value = true
-            delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100 + 400)
-            animationTriggers[id] = true
-            boxlist[id].visible.value = true
-            boxlist[id].exploded.value = false
-            boxlist[id].splashVisible.value = false
-//          boxlist[id].offsetY.value = 0.0.toFloat()
+            }
+        )
+    //time the animations
+
+
+
+
+
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(timeMillis = delay.toLong() * 100 + (id * 100))
+                if (animationTriggers[id] == false) {
+                    animationTriggers[id] = true
+                }
+                delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100)
+    //            if(boxlist[id].visible.value == true) {
+                    boxlist[id].visible.value = false
+                    boxlist[id].exploded.value = true
+                    animationTriggers[id] = false
+                    dragOffset.value = Offset.Zero
+                    rotationPlayed = false
+                    boxlist[id].splashVisible.value = true
+    //            }
+                delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100 + 400)
+                animationTriggers[id] = true
+                boxlist[id].visible.value = true
+                boxlist[id].exploded.value = false
+                boxlist[id].splashVisible.value = false
+    //          boxlist[id].offsetY.value = 0.0.toFloat()
+
+    //            if(boxlist[id].scoreVisible.value == true){
+    //                delay(timeMillis = delay.toLong() * 100)
+    //                boxlist[id].scoreVisible.value = false
+    //            }
+
+            }
 
         }
-    }
 
-    Box(contentAlignment = Alignment.Center,
-        modifier = modifier
-            .offset(
-                offsetX.value.dp + (dragOffset.value.x / 2).dp,
-                boxlist[id].offsetY.value.dp + (dragOffset.value.y / 2).dp
-            )
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = {
+        var scoreBoard = remember { mutableStateOf(false) }
 
-                        rotationPlayed = true
-                    },
-                    onDragCancel = {
-                        rotationPlayed = false
+        LaunchedEffect(boxlist[id].scoreVisible.value) {
+            Log.d("scoreboard1", boxlist[id].toString())
+            Log.d("scoreboard1-2", scoreBoard.toString())
 
-                        boxlist[id].exploded.value = true
-                        boxlist[id].visible.value = false
-                        boxlist[id].splashVisible.value = true
-                        boxlist[id].scoreVisible.value = true
+            if(boxlist[id].scoreVisible.value){
 
-                        score.value = score.value + boxlist[id].points
+                delay(1000)
+                boxlist[id].scoreVisible.value = false
 
+                scoreBoard.value = false
+                Log.d("scoreboard2", boxlist[id].toString())
 
-                    },
-                    onDragEnd = {
-                        rotationPlayed = false
-                        boxlist[id].exploded.value = true
-                        boxlist[id].visible.value = false
-                        boxlist[id].splashVisible.value = true
-                        boxlist[id].scoreVisible.value = true
+            }
+        }
 
-                        score.value = score.value + boxlist[id].points
+        Box(contentAlignment = Alignment.Center,
+            modifier = modifier
+                .offset(
+                    offsetX.value.dp + (dragOffset.value.x / 2).dp,
+                    boxlist[id].offsetY.value.dp + (dragOffset.value.y / 2).dp
+                )
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = {
 
+                            rotationPlayed = true
+                        },
+                        onDragCancel = {
+                            rotationPlayed = false
 
-                    }
-
-
-                ) { change, dragAmount ->
-                    change.consume()
-
-                    if (boxlist[id].visible.value == true) {
-                        dragOffset.value += Offset(dragAmount.x, dragAmount.y)
-                    }
-
-                    val newoffSetX = offsetX.value + dragOffset.value.x / 2
-                    val newoffsetY = boxlist[id].offsetY.value + (dragOffset.value.y / 2)
-                    for ((index, value) in boxlist.withIndex()) {
-                        if (boxlist[index].offsetY.value > newoffsetY - 5 && boxlist[index].offsetY.value < newoffsetY + size.value + 5
-                            && boxlist[index].offsetX > newoffSetX - 5 && boxlist[index].offsetX < newoffSetX + size.value + 5 && index != id
-                            && !boxlist[index].exploded.value
-                        ) {
-                            boxlist[index].exploded.value = true;
-                            boxlist[index].visible.value = false
-
-                            boxlist[id].exploded.value = true;
+                            boxlist[id].exploded.value = true
                             boxlist[id].visible.value = false
                             boxlist[id].splashVisible.value = true
-
-                            rotationPlayed = false
                             boxlist[id].scoreVisible.value = true
-                            boxlist[index].scoreVisible.value = true
-
 
                             score.value = score.value + boxlist[id].points
-                            score.value = score.value + boxlist[index].points
+
+
+                        },
+                        onDragEnd = {
+                            rotationPlayed = false
+                            boxlist[id].exploded.value = true
+                            boxlist[id].visible.value = false
+                            boxlist[id].splashVisible.value = true
+                            boxlist[id].scoreVisible.value = true
+
+                            score.value = score.value + boxlist[id].points
 
 
                         }
+
+
+                    ) { change, dragAmount ->
+                        change.consume()
+
+                        if (boxlist[id].visible.value == true) {
+                            dragOffset.value += Offset(dragAmount.x, dragAmount.y)
+                        }
+
+                        val newoffSetX = offsetX.value + dragOffset.value.x / 2
+                        val newoffsetY = boxlist[id].offsetY.value + (dragOffset.value.y / 2)
+                        for ((index, value) in boxlist.withIndex()) {
+                            if (boxlist[index].offsetY.value > newoffsetY - 5 && boxlist[index].offsetY.value < newoffsetY + size.value + 5
+                                && boxlist[index].offsetX > newoffSetX - 5 && boxlist[index].offsetX < newoffSetX + size.value + 5 && index != id
+                                && !boxlist[index].exploded.value
+                            ) {
+
+
+                                boxlist[index].exploded.value = true;
+                                boxlist[index].visible.value = false
+
+                                boxlist[id].exploded.value = true;
+                                boxlist[id].visible.value = false
+                                boxlist[id].splashVisible.value = true
+
+                                rotationPlayed = false
+                                boxlist[id].scoreVisible.value = true
+                                boxlist[index].scoreVisible.value = true
+
+                                score.value = score.value + boxlist[id].points
+                                score.value = score.value + boxlist[index].points
+                                scoreBoard.value = true
+//                                triggerStuff(scoreBoard)
+
+
+                            }
+                        }
                     }
+
+
                 }
-
-
-            }
-
-    ){
-        Box(
-
-            modifier = Modifier
-                .height(boxlist[id].size)
-                .width(boxlist[id].size)
-                .rotate(if (boxlist[id].visible.value) rotation.value else 0f)
-                .background(if (boxlist[id].visible.value) boxlist[id].color else Color.Transparent)
 
         ){
 
-            Text(
-                color = if(boxlist[id].scoreVisible.value) boxlist[id].color else Color.Transparent,
-                text = boxlist[id].points.toString(),
-            )
 
-            for (i in 1..5) {
-                Splasher(
-                    size = size.value.dp/3,
-                    height =Random.nextInt(-400,-100).dp,
-                    length =Random.nextInt(-400,400).dp,
-                    color =                 Color(
-                        Random.nextFloat(),
-                        Random.nextFloat(),
-                        Random.nextFloat(),
-                        1f
-                    ),
-                    visibility = boxlist[id].visible.value,
-                    isExplode = boxlist[id].exploded.value,
-                    id = id,
-                    splasherVisible = boxlist[id].splashVisible.value
 
-                    )
+            Box(
+
+                modifier = Modifier
+                    .height(boxlist[id].size)
+                    .width(boxlist[id].size)
+                    .rotate(if (boxlist[id].visible.value) rotation.value else 0f)
+                    .background(if (boxlist[id].visible.value) boxlist[id].color else Color.Transparent)
+
+            ){
+
+
+                Text(
+                    color = if(boxlist[id].scoreVisible.value) boxlist[id].color else Color.Transparent,
+                    text = boxlist[id].points.toString(),
+                )
+
+                for (i in 1..5) {
+                    Splasher(
+                        size = size.value.dp/3,
+                        height =Random.nextInt(-400,-100).dp,
+                        length =Random.nextInt(-400,400).dp,
+                        color =                 Color(
+                            Random.nextFloat(),
+                            Random.nextFloat(),
+                            Random.nextFloat(),
+                            1f
+                        ),
+                        visibility = boxlist[id].visible.value,
+                        isExplode = boxlist[id].exploded.value,
+                        id = id,
+                        splasherVisible = boxlist[id].splashVisible.value
+
+                        )
+                }
             }
         }
     }
-}
 
 
 @Composable
@@ -383,6 +424,9 @@ fun Splasher(
     splasherVisible:Boolean
 
 ){
+
+
+
 
     var splashAnimation1X = animateDpAsState(targetValue = if(isExplode) length else 0.dp, animationSpec =
     keyframes {
@@ -415,7 +459,16 @@ data class Drop(
 )
 
 
-
+//@Composable
+//fun triggerStuff (unit:MutableState<Boolean>){
+//    LaunchedEffect(unit){
+//        delay(200)
+//        Log.d("triggered", "something")
+//
+//
+//    }
+//
+//}
 
 //@Composable
 //val mutableList = remember { mutableStateListOf(<ListBoxData>)}
