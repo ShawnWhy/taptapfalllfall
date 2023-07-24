@@ -286,7 +286,20 @@ fun TapTapHome(
                 delay(1000)
                 boxlist[id].scoreVisible.value = false
 
-                scoreBoard.value = false
+                Log.d("scoreboard2", boxlist[id].toString())
+
+            }
+        }
+
+        LaunchedEffect(boxlist[id].splashVisible.value) {
+            Log.d("splash1", boxlist[id].toString())
+            Log.d("splash2", scoreBoard.toString())
+
+            if(boxlist[id].splashVisible.value){
+
+                delay(1000)
+                boxlist[id].splashVisible.value = false
+
                 Log.d("scoreboard2", boxlist[id].toString())
 
             }
@@ -358,7 +371,6 @@ fun TapTapHome(
 
                                 score.value = score.value + boxlist[id].points
                                 score.value = score.value + boxlist[index].points
-                                scoreBoard.value = true
 //                                triggerStuff(scoreBoard)
 
 
