@@ -89,25 +89,12 @@ data class BoxItem(
     val scoreVisible : MutableState<Boolean> = mutableStateOf(false),
     val color:Color
 )
-
-data class BoxLocation(
-    val id : Int,
-    val offsetX: Float,
-    val offsetY:Float,
-)
-//@ExperimentalFoundationApi
-
-
 @Composable
 fun MainContainer(
-
-
 ){
     val score = remember { mutableStateOf(0) }
     val fallNumber = 8
-
     var boxItems = remember { mutableStateListOf<BoxItem>() }
-
     for (i in 0..fallNumber){
         val randomSizeNumber = Random.nextInt(50)+50
         var newBox = BoxItem(
@@ -125,28 +112,35 @@ fun MainContainer(
         )
         boxItems.add(newBox)
     }
-
-
-
     var animationTriggers = remember { mutableStateListOf<Boolean>()}
     for (i in 0..fallNumber){
         animationTriggers.add(false)
     }
 
-    TapTapHome(animationTriggers = animationTriggers, boxItems = boxItems, score = score )
 
 
+
+    var randomHeightsForSplasher = remember { mutableStateListOf<Dp>()}
+    for (i in 0..20){
+        randomHeightsForSplasher .add( Random.nextInt(-400,400).dp,)
+    }
+
+    var randomWidthsForPlasher = remember { mutableStateListOf<Dp>()}
+    for (i in 0..20){
+        randomWidthsForPlasher .add( Random.nextInt(-400,400).dp,)
+    }
+
+    TapTapHome(animationTriggers = animationTriggers, boxItems = boxItems, score = score,
+    heightList = randomHeightsForSplasher, widthList = randomWidthsForPlasher)
 }
 @Composable
 fun TapTapHome(
-
     animationTriggers: MutableList<Boolean>,
     boxItems:MutableList<BoxItem>,
-    score:MutableState<Int>
-
+    score:MutableState<Int>,
+    heightList: List<Dp>,
+    widthList: List<Dp>,
 ) {
-
-
     val color = remember {
         mutableStateOf(Color.Yellow)
     }
@@ -162,8 +156,6 @@ fun TapTapHome(
             .background(Color.White)
             .padding(10.dp)
             .align(Alignment.TopCenter)
-
-
         ){
             Text(
                 text = score.value.toString()
@@ -179,7 +171,9 @@ fun TapTapHome(
                 delay =index*4,
                 id = index,
                 animationTriggers = animationTriggers,
-                score = score
+                score = score,
+                heightList = heightList,
+                widthList = widthList
 
             ) {
                 color.value = it
@@ -187,9 +181,6 @@ fun TapTapHome(
         }
     }
 }
-
-
-
 //this is the button class that calls and is controled
 
     @Composable
@@ -202,6 +193,8 @@ fun TapTapHome(
         boxlist : List<BoxItem>,
         animationTriggers : MutableList<Boolean>,
         score : MutableState<Int>,
+        heightList:List<Dp>,
+        widthList:List<Dp>,
 
         updateColor : (Color) -> Unit
     ){
@@ -210,21 +203,10 @@ fun TapTapHome(
         var rotationPlayed by remember {
             mutableStateOf(false)
         }
-        var splashPlayed by remember{
-            mutableStateOf(false)
-        }
-        var sizeState by remember { mutableStateOf(40) }
         var size = animateFloatAsState(targetValue = boxlist[id].size.value)
         var offsetX = offsetXInput.dp
-        var visibility by remember{
-            mutableStateOf(true)
-        }
-        var fade by remember { mutableStateOf(false)}
-
-
         boxlist[id].offsetY = animateFloatAsState(targetValue = if(animationTriggers[id]) 600.toFloat() else 0.toFloat(),
-
-            keyframes {
+        keyframes {
                 durationMillis = time
                 delayMillis = 500
             }
@@ -235,76 +217,47 @@ fun TapTapHome(
     //            ))
             keyframes {
                 durationMillis = 500
-
             }
         )
     //time the animations
-
-
-
-
-
         LaunchedEffect(Unit) {
             while (true) {
                 delay(timeMillis = delay.toLong() * 100 + (id * 100))
                 if (animationTriggers[id] == false) {
                     animationTriggers[id] = true
                 }
+                //after a set amount of time the block explodes
                 delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100)
-    //            if(boxlist[id].visible.value == true) {
+                if(boxlist[id].visible.value == true) {
                     boxlist[id].visible.value = false
                     boxlist[id].exploded.value = true
-                    animationTriggers[id] = false
-                    dragOffset.value = Offset.Zero
                     rotationPlayed = false
                     boxlist[id].splashVisible.value = true
-    //            }
+                }
+                dragOffset.value = Offset.Zero
+                animationTriggers[id] = false
                 delay(timeMillis = delay.toLong() * 100 + time - 100 + id * 100 + 400)
                 animationTriggers[id] = true
                 boxlist[id].visible.value = true
                 boxlist[id].exploded.value = false
                 boxlist[id].splashVisible.value = false
-    //          boxlist[id].offsetY.value = 0.0.toFloat()
-
-    //            if(boxlist[id].scoreVisible.value == true){
-    //                delay(timeMillis = delay.toLong() * 100)
-    //                boxlist[id].scoreVisible.value = false
-    //            }
-
             }
-
         }
-
         var scoreBoard = remember { mutableStateOf(false) }
-
+// when the score is visible delay and make them invisible again
         LaunchedEffect(boxlist[id].scoreVisible.value) {
-            Log.d("scoreboard1", boxlist[id].toString())
-            Log.d("scoreboard1-2", scoreBoard.toString())
-
             if(boxlist[id].scoreVisible.value){
-
                 delay(1000)
                 boxlist[id].scoreVisible.value = false
-
-                Log.d("scoreboard2", boxlist[id].toString())
-
             }
         }
-
+//when the splash is visible, deplay so that they are invisible again
         LaunchedEffect(boxlist[id].splashVisible.value) {
-            Log.d("splash1", boxlist[id].toString())
-            Log.d("splash2", scoreBoard.toString())
-
             if(boxlist[id].splashVisible.value){
-
-                delay(1000)
+                delay(500)
                 boxlist[id].splashVisible.value = false
-
-                Log.d("scoreboard2", boxlist[id].toString())
-
             }
         }
-
         Box(contentAlignment = Alignment.Center,
             modifier = modifier
                 .offset(
@@ -314,7 +267,6 @@ fun TapTapHome(
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = {
-
                             rotationPlayed = true
                         },
                         onDragCancel = {
@@ -324,10 +276,7 @@ fun TapTapHome(
                             boxlist[id].visible.value = false
                             boxlist[id].splashVisible.value = true
                             boxlist[id].scoreVisible.value = true
-
                             score.value = score.value + boxlist[id].points
-
-
                         },
                         onDragEnd = {
                             rotationPlayed = false
@@ -337,56 +286,41 @@ fun TapTapHome(
                             boxlist[id].scoreVisible.value = true
 
                             score.value = score.value + boxlist[id].points
-
-
                         }
-
-
                     ) { change, dragAmount ->
                         change.consume()
-
                         if (boxlist[id].visible.value == true) {
                             dragOffset.value += Offset(dragAmount.x, dragAmount.y)
                         }
-
                         val newoffSetX = offsetX.value + dragOffset.value.x / 2
                         val newoffsetY = boxlist[id].offsetY.value + (dragOffset.value.y / 2)
                         for ((index, value) in boxlist.withIndex()) {
-                            if (boxlist[index].offsetY.value > newoffsetY - 5 && boxlist[index].offsetY.value < newoffsetY + size.value + 5
-                                && boxlist[index].offsetX > newoffSetX - 5 && boxlist[index].offsetX < newoffSetX + size.value + 5 && index != id
+                            if (boxlist[index].offsetY.value > newoffsetY - 5
+                                && boxlist[index].offsetY.value < newoffsetY + size.value + 5
+                                && boxlist[index].offsetX > newoffSetX - 5
+                                && boxlist[index].offsetX < newoffSetX + size.value + 5
+                                && index != id
                                 && !boxlist[index].exploded.value
+                                && boxlist[index].visible.value
+                                && !boxlist[id].splashVisible.value
                             ) {
-
-
-                                boxlist[index].exploded.value = true;
-                                boxlist[index].visible.value = false
-
-                                boxlist[id].exploded.value = true;
-                                boxlist[id].visible.value = false
-                                boxlist[id].splashVisible.value = true
-
                                 rotationPlayed = false
+                                boxlist[index].exploded.value = true
+                                boxlist[index].visible.value = false
+                                boxlist[index].splashVisible.value = true
+                                boxlist[id].visible.value = false
+                                boxlist[id].exploded.value = true;
+                                boxlist[id].splashVisible.value = true
                                 boxlist[id].scoreVisible.value = true
                                 boxlist[index].scoreVisible.value = true
-
                                 score.value = score.value + boxlist[id].points
                                 score.value = score.value + boxlist[index].points
-//                                triggerStuff(scoreBoard)
-
-
                             }
                         }
                     }
-
-
                 }
-
         ){
-
-
-
             Box(
-
                 modifier = Modifier
                     .height(boxlist[id].size)
                     .width(boxlist[id].size)
@@ -394,18 +328,17 @@ fun TapTapHome(
                     .background(if (boxlist[id].visible.value) boxlist[id].color else Color.Transparent)
 
             ){
-
-
                 Text(
                     color = if(boxlist[id].scoreVisible.value) boxlist[id].color else Color.Transparent,
                     text = boxlist[id].points.toString(),
                 )
-
-                for (i in 1..5) {
+                for (i in 1..20) {
                     Splasher(
                         size = size.value.dp/3,
-                        height =Random.nextInt(-400,-100).dp,
-                        length =Random.nextInt(-400,400).dp,
+//                        height =Random.nextInt(-400,-100).dp,
+//                        length =Random.nextInt(-400,400).dp,
+                        height =heightList[i],
+                        length =widthList[i],
                         color =                 Color(
                             Random.nextFloat(),
                             Random.nextFloat(),
@@ -416,14 +349,11 @@ fun TapTapHome(
                         isExplode = boxlist[id].exploded.value,
                         id = id,
                         splasherVisible = boxlist[id].splashVisible.value
-
                         )
                 }
             }
         }
     }
-
-
 @Composable
 fun Splasher(
     id:Int,
@@ -433,88 +363,24 @@ fun Splasher(
     length:Dp,
     color:Color,
     visibility:Boolean,
-    splasherVisible:Boolean
+    splasherVisible:Boolean,
 
 ){
-
-
-
-
-    var splashAnimation1X = animateDpAsState(targetValue = if(isExplode) length else 0.dp, animationSpec =
+    var splashAnimation1X = animateDpAsState(targetValue = if(isExplode&&!visibility&&splasherVisible) length else 0.dp, animationSpec =
     keyframes {
         durationMillis=500
-
     } )
-
     val splashAnimation1Y = animateDpAsState(
-        targetValue = if(isExplode)height else 0.dp,
+        targetValue = if(isExplode&&!visibility && splasherVisible)height else 0.dp,
         animationSpec = keyframes {
             durationMillis = 500
         }
     )
-
     Box(
         modifier= Modifier
             .size(size)
             .offset(splashAnimation1X.value, splashAnimation1Y.value)
-            .background(if (!visibility && splasherVisible) color else Color.Transparent)
-
+            .background(if (!visibility && splasherVisible && isExplode) color else Color.Transparent)
     ){
-
     }
-
 }
-data class Drop(
-    val animationState:String,
-    val xOffset:Float,
-    val yOffset:Float
-)
-
-
-//@Composable
-//fun triggerStuff (unit:MutableState<Boolean>){
-//    LaunchedEffect(unit){
-//        delay(200)
-//        Log.d("triggered", "something")
-//
-//
-//    }
-//
-//}
-
-//@Composable
-//val mutableList = remember { mutableStateListOf(<ListBoxData>)}
-//
-//fun detectCollision(
-//    var boxList :List<DropBoxData>
-//
-//){
-//
-//
-//}
-
-
-//@Composable
-//fun TapButton(
-//    modifier:Modifier = Modifier,
-//    time:Int = 3000,
-//    color: Color,
-//    updateColor : (Color) -> Unit,
-//){
-//    Box(modifier = modifier
-//        .background(color)
-//        .clickable {
-//            updateColor(
-//                Color(
-//                    Random.nextFloat(),
-//                    Random.nextFloat(),
-//                    Random.nextFloat(),
-//                    1f
-//                )
-//            )
-//        }
-//    ){
-//        Text(text = "Click Brah")
-//    }
-//}
-
